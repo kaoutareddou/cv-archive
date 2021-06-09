@@ -1,45 +1,73 @@
+import datetime
 import os
 import smtplib
-from email import encoders
-from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
-os.system('pdflatex template.tex')
+import dropbox
 
-mail_content = "This your cv's last version"
 
-sender_address = 'cv.archive.km@gmail.com'
-sender_pass = '******'
+def compile_latex():
+    os.system('pdflatex template.tex')
 
-receiver_address = 'assalielmehdi@gmail.com'
 
-message = MIMEMultipart()
-message['From'] = sender_address
-message['To'] = receiver_address
-message['Subject'] = 'New CV has been built'
+def upload_cv_and_get_shared_link():
+    access_token = '*****'
 
-message.attach(MIMEText(mail_content, 'plain'))
+    dbx = dropbox.Dropbox(access_token)
 
-attach_file_name = 'template.pdf'
-attach_file = open(attach_file_name, 'rb')
+    d = datetime.datetime.today()
 
-payload = MIMEBase('application', 'octet-stream')
-payload.set_payload(attach_file.read())
-encoders.encode_base64(payload)
+    file_from = 'template.pdf'
+    file_to = f'/CV_El-Mehdi-ASSALI_{d.strftime("%d-%m-%YT%H:%M:%S")}.pdf'
 
-attach_file.close()
+    with open(file_from, 'rb') as f:
+        dbx.files_upload(f.read(), file_to)
 
-payload.add_header('Content-Decomposition', 'attachment', filename=attach_file_name)
-message.attach(payload)
+        shared_link_metadata = dbx.sharing_create_shared_link_with_settings(file_to)
 
-session = smtplib.SMTP('smtp.gmail.com', 587)
-session.starttls()
-session.login(sender_address, sender_pass)
+        return shared_link_metadata.url
 
-text = message.as_string()
 
-session.sendmail(sender_address, receiver_address, text)
-session.quit()
+def send_email(shared_link):
+    mail_content = f'''
+    A new version of your CV is available.
 
-print('Mail Sent')
+    You can access your CV via: {shared_link}.
+    '''
+
+    sender_address = 'cv.archive.km@gmail.com'
+    sender_pass = '*****'
+
+    receiver_address = 'assalielmehdi@gmail.com'
+
+    message = MIMEMultipart()
+
+    message['From'] = sender_address
+    message['To'] = receiver_address
+    message['Subject'] = '[CV-ARCHIVE] New CV'
+
+    message.attach(MIMEText(mail_content, 'plain'))
+
+    session = smtplib.SMTP('smtp.gmail.com', 587)
+
+    session.starttls()
+    session.login(sender_address, sender_pass)
+
+    text = message.as_string()
+
+    session.sendmail(sender_address, receiver_address, text)
+
+    session.quit()
+
+
+def main():
+    compile_latex()
+
+    shared_link = upload_cv_and_get_shared_link()
+
+    send_email(shared_link)
+
+
+if __name__ == '__main__':
+    main()
