@@ -12,7 +12,7 @@ def compile_latex():
 
 
 def upload_cv_and_get_shared_link():
-    access_token = '*****'
+    access_token = os.environ['DROPBOX_ACCESS_TOKEN']
 
     dbx = dropbox.Dropbox(access_token)
 
@@ -37,7 +37,7 @@ def send_email(shared_link):
     '''
 
     sender_address = 'cv.archive.km@gmail.com'
-    sender_pass = '*****'
+    sender_pass = os.environ['EMAIL_PASSWORD']
 
     receiver_address = 'assalielmehdi@gmail.com'
 
